@@ -6,7 +6,6 @@ import wandb
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from utils import federated_averaging, evaluate
 from models.simple_cnn import SimpleCNN
-from workloads.cifar10 import load_dataset, process_batch
 import random
 import numpy as np
 from tqdm import tqdm
@@ -33,6 +32,7 @@ parser.add_argument('--device', type=int, default=0)
 parser.add_argument('--participation_fraction', type=float, default=0.1)
 parser.add_argument('--partitioner', type=str, choices=["iid", "dirichlet"], default="iid")
 parser.add_argument('--loss', type=str, choices=criterions.keys())
+parser.add_argument('--dataset', type=str, choices=["cifar10", "cifar100"], default="cifar10")
 
 args = parser.parse_args()
 
@@ -46,6 +46,13 @@ partitioner_type = args.partitioner
 loss_type = args.loss
 
 
+if args.dataset == "cifar10":
+    from workloads.cifar10 import load_dataset, process_batch
+    num_classes = 10
+elif args.dataset == "cifar100":
+    from workloads.cifar100 import load_dataset, process_batch
+    num_classes = 100
+
 DEVICE_ARG = f"cuda:{args.device}"
 DEVICE = torch.device(DEVICE_ARG if torch.cuda.is_available() else "cpu")
 
@@ -55,9 +62,9 @@ wandb.login()
 
 wandb.init(
     project=f"fedmi",
-    group="fedmi-cifar10",
+    group=f"{args.dataset}-{args.loss}",
     config={
-        "workload": "cifar10",
+        "dataset": args.dataset,
         "seed": seed,
         "num_clients": num_clients,
         "num_rounds": num_rounds,
@@ -85,8 +92,8 @@ set_seed(seed)
 
 test_loader, get_client_loader = load_dataset(partitioner, batch_size=batch_size)
 
-global_model = SimpleCNN(num_classes=10).to(DEVICE)
-local_models = [SimpleCNN(num_classes=10).to(DEVICE) for _ in range(num_clients)]
+global_model = SimpleCNN(num_classes).to(DEVICE)
+local_models = [SimpleCNN(num_classes).to(DEVICE) for _ in range(num_clients)]
 
 # wandb.watch(global_model, log="all")
 # wandb.watch(local_models, log="all")
@@ -100,8 +107,8 @@ for round in tqdm(range(num_rounds)):
     round_models = []
     for client_idx in tqdm(participating_clients, leave=False):
         trainloader, valloader = get_client_loader(client_idx)
-        model = SimpleCNN(num_classes=10).to(DEVICE)
-        optimizer = optim.SGD(model.parameters(), lr=0.1)
+        model = SimpleCNN(num_classes).to(DEVICE)
+        optimizer = optim.Adam(model.parameters())
         criterion = criterions[loss_type]
         model.load_state_dict(global_model.state_dict())
         model.train()
@@ -112,10 +119,15 @@ for round in tqdm(range(num_rounds)):
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 optimizer.zero_grad()
                 outputs = model(images)
-                loss, joints, marginals = criterion(outputs, labels)
-                (-loss).backward()
+                if loss_type == "ce":
+                    loss = criterion(outputs, labels)
+                    loss.backward()
+                    train_loss += loss.item()
+                else:                
+                    loss, joints, marginals = criterion(outputs, labels)
+                    (-loss).backward()
+                    train_loss += (-loss).item()
                 optimizer.step()
-                train_loss += (-loss).item()
                 optimizer.step()
         round_models.append(model)
 

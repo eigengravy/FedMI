@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from functools import partial
 import numpy as np
 
@@ -154,6 +155,7 @@ def renwjjs(logits, labels, alpha, bias, clip):
 
 
 criterions = {
+    "ce": nn.functional.cross_entropy,
     "mine": mine,
     "infonce": infonce,
     "smile_t1": partial(smile, clip=1.0),

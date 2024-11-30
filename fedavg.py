@@ -6,7 +6,6 @@ import wandb
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from utils import federated_averaging, evaluate
 from models.simple_cnn import SimpleCNN
-from workloads.cifar10 import load_dataset, process_batch
 import random
 import numpy as np
 from tqdm import tqdm
@@ -36,6 +35,7 @@ parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--device', type=int, default=0)
 parser.add_argument('--participation_fraction', type=float, default=0.1)
 parser.add_argument('--partitioner', type=str, choices=["iid", "dirichlet"], default="iid")
+parser.add_argument('--dataset', type=str, choices=["cifar10", "cifar100"], default="cifar10")
 
 args = parser.parse_args()
 
@@ -47,13 +47,21 @@ batch_size = args.batch_size
 participation_fraction = args.participation_fraction
 partitioner_type = args.partitioner
 
+if args.dataset == "cifar10":
+    from workloads.cifar10 import load_dataset, process_batch
+    num_classes = 10
+elif args.dataset == "cifar100":
+    from workloads.cifar100 import load_dataset, process_batch
+    num_classes = 100
+
+
 wandb.login()
 
 wandb.init(
     project=f"fedmi",
-    group="fedavg-cifar10",
+    group=f"fedavg-{args.dataset}",
     config={
-        "workload": "cifar10",
+        "dataset": args.dataset,
         "seed": seed,
         "num_clients": num_clients,
         "num_rounds": num_rounds,
@@ -80,8 +88,8 @@ set_seed(seed)
 
 test_loader, get_client_loader = load_dataset(partitioner, batch_size)
 
-global_model = SimpleCNN(num_classes=10).to(DEVICE)
-local_models = [SimpleCNN(num_classes=10).to(DEVICE) for _ in range(num_clients)]
+global_model = SimpleCNN(num_classes).to(DEVICE)
+local_models = [SimpleCNN(num_classes).to(DEVICE) for _ in range(num_clients)]
 
 # wandb.watch(global_model, log="all")
 # wandb.watch(local_models, log="all")
@@ -95,8 +103,8 @@ for round in tqdm(range(num_rounds)):
     round_models = []
     for client_idx in tqdm(participating_clients, leave=False):
         trainloader, valloader = get_client_loader(client_idx)
-        model = SimpleCNN(num_classes=10).to(DEVICE)
-        optimizer = optim.SGD(model.parameters(), lr=0.1)
+        model = SimpleCNN(num_classes).to(DEVICE)
+        optimizer = optim.Adam(model.parameters())
         model.load_state_dict(global_model.state_dict())
         model.train()
         train_loss = 0
