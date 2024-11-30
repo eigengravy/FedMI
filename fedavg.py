@@ -36,8 +36,9 @@ wandb.login()
 
 wandb.init(
     project=f"fedmi",
-    group="fedavg",
+    group="fedavg-cifar10",
     config={
+        "workload": "cifar10",
         "seed": seed,
         "num_clients": num_clients,
         "num_rounds": num_rounds,
@@ -67,8 +68,8 @@ test_loader, get_client_loader = load_dataset(partitioner)
 global_model = SimpleCNN(num_classes=10).to(DEVICE)
 local_models = [SimpleCNN(num_classes=10).to(DEVICE) for _ in range(num_clients)]
 
-wandb.watch(global_model, log="all")
-wandb.watch(local_models, log="all")
+# wandb.watch(global_model, log="all")
+# wandb.watch(local_models, log="all")
 
 os.makedirs(f"save/{name}", exist_ok=True)
 
@@ -108,7 +109,7 @@ for round in tqdm(range(num_rounds)):
             },
             commit=False,
         )
-        torch.save(model, f"save/{name}/c_{round}_{client_idx}.pt")
+        torch.save(model.state_dict(), f"save/{name}/c_{round}_{client_idx}.pt")
 
     federated_averaging(global_model, round_models, DEVICE)
     test_loss, accuracy = evaluate(global_model, test_loader, DEVICE, process_batch)
@@ -119,4 +120,4 @@ for round in tqdm(range(num_rounds)):
             "pariticipating_clients": participating_clients,
         }
     )
-    torch.save(global_model, f"save/{name}/g_{round}.pt")
+    torch.save(global_model.state_dict(), f"save/{name}/g_{round}.pt")
