@@ -1,3 +1,4 @@
+import argparse
 import torch
 import torch.nn as nn
 from torch import optim
@@ -24,13 +25,27 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-seed = 42
-num_clients = 100
-num_rounds = 500
-local_epochs = 5
-batch_size = 64
-participation_fraction = 0.1
-partitioner_type = "iid"
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--seed', type=int, default=42)
+parser.add_argument('--num_clients', type=int, default=100)
+parser.add_argument('--num_rounds', type=int, default=100)
+parser.add_argument('--local_epochs', type=int, default=5)
+parser.add_argument('--batch_size', type=int, default=64)
+parser.add_argument('--device', type=int, default=0)
+parser.add_argument('--participation_fraction', type=float, default=0.1)
+parser.add_argument('--partitioner', type=str, choices=["iid", "dirichlet"], default="iid")
+
+args = parser.parse_args()
+
+seed = args.seed
+num_clients = args.num_clients
+num_rounds = args.num_rounds
+local_epochs = args.local_epochs
+batch_size = args.batch_size
+participation_fraction = args.participation_fraction
+partitioner_type = args.partitioner
 
 wandb.login()
 
@@ -63,7 +78,7 @@ elif partitioner_type == "dirichlet":
 
 set_seed(seed)
 
-test_loader, get_client_loader = load_dataset(partitioner)
+test_loader, get_client_loader = load_dataset(partitioner, batch_size)
 
 global_model = SimpleCNN(num_classes=10).to(DEVICE)
 local_models = [SimpleCNN(num_classes=10).to(DEVICE) for _ in range(num_clients)]

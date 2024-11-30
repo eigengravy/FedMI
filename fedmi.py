@@ -26,7 +26,7 @@ from losses import criterions
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--num_clients', type=int, default=100)
-parser.add_argument('--num_rounds', type=int, default=500)
+parser.add_argument('--num_rounds', type=int, default=100)
 parser.add_argument('--local_epochs', type=int, default=5)
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--device', type=int, default=0)
