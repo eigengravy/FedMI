@@ -98,7 +98,7 @@ for round in tqdm(range(num_rounds)):
     participating_clients = random.sample(range(num_clients), num_participating_clients)
 
     round_models = []
-    for client_idx in participating_clients:
+    for client_idx in tqdm(participating_clients, leave=False):
         trainloader, valloader = get_client_loader(client_idx)
         model = SimpleCNN(num_classes=10).to(DEVICE)
         optimizer = optim.SGD(model.parameters(), lr=0.1)
@@ -106,8 +106,8 @@ for round in tqdm(range(num_rounds)):
         model.load_state_dict(global_model.state_dict())
         model.train()
         train_loss = 0
-        for _ in range(local_epochs):
-            for batch in trainloader:
+        for _ in tqdm(range(local_epochs), leave=False):
+            for batch in tqdm(trainloader, leave=False):
                 images, labels = process_batch(batch)
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 optimizer.zero_grad()
