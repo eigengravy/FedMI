@@ -89,3 +89,6 @@ def load_dataset(partitioners, batch_size=64, test_size=0.1, noise_ratio=0.0):
         return trainloader, valloader
 
     return testloader, get_client_loader
+
+def process_batch(batch):
+    return batch["img"], batch["label"]
