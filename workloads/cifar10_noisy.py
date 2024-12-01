@@ -3,10 +3,11 @@ import random
 from flwr_datasets import FederatedDataset
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Lambda, Normalize, ToTensor, RandomHorizontalFlip, RandomRotation, RandomAffine, ColorJitter
+import torch
 
 def add_label_noise(batch, noise_ratio):
     """Add noise to labels between similar classes for CIFAR-10."""
-    labels = batch["label"]
+    labels = torch.tensor(batch["label"])  # Convert to PyTorch tensor
     noisy_labels = labels.clone()
     
     # Define the mapping for similar classes
@@ -23,12 +24,13 @@ def add_label_noise(batch, noise_ratio):
     
     # Replace selected labels with their similar counterparts
     for idx in noisy_indices:
-        original_label = labels[idx].item()
+        original_label = noisy_labels[idx].item()
         if original_label in similar_classes:
             noisy_labels[idx] = similar_classes[original_label]
     
-    batch["label"] = noisy_labels
+    batch["label"] = noisy_labels.tolist()  # Convert back to a list
     return batch
+
 
 def load_dataset(partitioners, batch_size=64, test_size=0.1, noise_ratio=0.0):
 
