@@ -31,6 +31,7 @@ parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--device', type=int, default=0)
 parser.add_argument('--participation_fraction', type=float, default=0.1)
 parser.add_argument('--partitioner', type=str, choices=["iid", "dirichlet"], default="iid")
+parser.add_argument('--partition_alpha', type=float, default=0.5)
 parser.add_argument('--loss', type=str, choices=criterions.keys())
 parser.add_argument('--dataset', type=str, choices=["cifar10", "cifar100"], default="cifar10")
 
@@ -43,6 +44,7 @@ local_epochs = args.local_epochs
 batch_size = args.batch_size
 participation_fraction = args.participation_fraction
 partitioner_type = args.partitioner
+partition_alpha = args.partition_alpha
 loss_type = args.loss
 
 
@@ -72,6 +74,7 @@ wandb.init(
         "batch_size": batch_size,
         "participation_fraction": participation_fraction,
         "partitioner_type": partitioner_type,
+        "partition_alpha": partition_alpha,
         "loss_type": loss_type,
     },
 )
@@ -85,7 +88,8 @@ if partitioner_type == "iid":
 elif partitioner_type == "dirichlet":
     partitioner = DirichletPartitioner(
         num_partitions=num_clients,
-        alpha=0.5
+        alpha=partition_alpha,
+        partition_by="label",
     )
 
 set_seed(seed)
