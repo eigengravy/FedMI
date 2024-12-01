@@ -33,7 +33,8 @@ parser.add_argument('--participation_fraction', type=float, default=0.1)
 parser.add_argument('--partitioner', type=str, choices=["iid", "dirichlet"], default="iid")
 parser.add_argument('--partition_alpha', type=float, default=0.5)
 parser.add_argument('--loss', type=str, choices=criterions.keys())
-parser.add_argument('--dataset', type=str, choices=["cifar10", "cifar100"], default="cifar10")
+parser.add_argument('--dataset', type=str, choices=["cifar10", "cifar100", "cifar10_noisy"], default="cifar10")
+parser.add_argument('--noise_ratio', type=float, default=0.0)
 
 args = parser.parse_args()
 
@@ -46,7 +47,7 @@ participation_fraction = args.participation_fraction
 partitioner_type = args.partitioner
 partition_alpha = args.partition_alpha
 loss_type = args.loss
-
+noise_ratio = args.noise_ratio
 
 if args.dataset == "cifar10":
     from workloads.cifar10 import load_dataset, process_batch
@@ -56,7 +57,11 @@ elif args.dataset == "cifar100":
     from workloads.cifar100 import load_dataset, process_batch
     num_classes = 100
     partition_by = "fine_label"
-
+elif args.dataset == "cifar10_noisy":
+    from workloads.cifar10_noisy import load_dataset, process_batch
+    num_classes = 10
+    partition_by = "label"
+    
 DEVICE_ARG = f"cuda:{args.device}"
 DEVICE = torch.device(DEVICE_ARG if torch.cuda.is_available() else "cpu")
 
@@ -78,6 +83,7 @@ wandb.init(
         "partitioner_type": partitioner_type,
         "partition_alpha": partition_alpha,
         "loss_type": loss_type,
+        "noise_ratio": noise_ratio,
     },
 )
 
@@ -96,7 +102,10 @@ elif partitioner_type == "dirichlet":
 
 set_seed(seed)
 
-test_loader, get_client_loader = load_dataset(partitioner, batch_size=batch_size)
+if args.dataset == "cifar10_noisy":
+    test_loader, get_client_loader = load_dataset(partitioner, batch_size=batch_size, noise_ratio=noise_ratio)
+else:
+    test_loader, get_client_loader = load_dataset(partitioner, batch_size=batch_size)
 
 global_model = SimpleCNN(num_classes).to(DEVICE)
 local_models = [SimpleCNN(num_classes).to(DEVICE) for _ in range(num_clients)]
