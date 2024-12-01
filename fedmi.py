@@ -51,9 +51,11 @@ loss_type = args.loss
 if args.dataset == "cifar10":
     from workloads.cifar10 import load_dataset, process_batch
     num_classes = 10
+    partition_by = "label"
 elif args.dataset == "cifar100":
     from workloads.cifar100 import load_dataset, process_batch
     num_classes = 100
+    partition_by = "fine_label"
 
 DEVICE_ARG = f"cuda:{args.device}"
 DEVICE = torch.device(DEVICE_ARG if torch.cuda.is_available() else "cpu")
@@ -89,7 +91,7 @@ elif partitioner_type == "dirichlet":
     partitioner = DirichletPartitioner(
         num_partitions=num_clients,
         alpha=partition_alpha,
-        partition_by="label",
+        partition_by=partition_by,
     )
 
 set_seed(seed)
