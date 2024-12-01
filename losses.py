@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from functools import partial
 import numpy as np
 
@@ -154,6 +155,15 @@ def renwjjs(logits, labels, alpha, bias, clip):
     return loss + mi_loss, joint, marginal
 
 
+def dmi(output, target, num_classes):
+    outputs = F.softmax(output, dim=1)
+    targets = target.reshape(target.size(0), 1).cpu()
+    y_onehot = torch.FloatTensor(target.size(0), num_classes).zero_()
+    y_onehot.scatter_(1, targets, 1)
+    y_onehot = y_onehot.transpose(0, 1).cuda()
+    mat = y_onehot @ outputs
+    return -1.0 * torch.log(torch.abs(torch.det(mat.float())) + 0.001)
+
 criterions = {
     "ce": nn.functional.cross_entropy,
     "mine": mine,
@@ -164,6 +174,7 @@ criterions = {
     "nwj": nwj,
     "js": js,
     "nwjjs": nwjjs,
+    "dmi": dmi
 }
 
 

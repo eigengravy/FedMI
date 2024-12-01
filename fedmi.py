@@ -138,11 +138,14 @@ for round in tqdm(range(num_rounds)):
                     loss = criterion(outputs, labels)
                     loss.backward()
                     train_loss += loss.item()
+                elif loss_type == "dmi":
+                    loss = criterion(outputs, labels, num_classes)
+                    loss.backward()
+                    train_loss += loss.item()
                 else:                
                     loss, joints, marginals = criterion(outputs, labels)
                     (-loss).backward()
                     train_loss += (-loss).item()
-                optimizer.step()
                 optimizer.step()
         round_models.append(model)
 
